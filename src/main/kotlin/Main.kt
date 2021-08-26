@@ -39,13 +39,18 @@ class DiscordLogcat(var adbPath: String = "", var webhook: String = "") {
             inputStreamReader
                 .readLine()
                 .takeIf { it.contains(PREFIX) }
-                ?.replaceBefore(PREFIX, "")
-                ?.replace(PREFIX, "")
-                ?.also { println(it) }
+                ?.sanitize()
+                ?.also { msg ->  println(msg) }
                 ?.post()
-                ?.also { println(it) }
+                ?.also { response -> println(response) }
         }
     }
 
     fun String.post() = khttp.post(webhook, data = mapOf("content" to this), headers = HEADERS)
 }
+
+private fun String.sanitize() =
+    String(this.toByteArray(), Charsets.US_ASCII)
+        .replace("����", " ") // this replaces some weird unicode space
+        .replaceBefore(PREFIX, "")
+        .replace(PREFIX, "")
