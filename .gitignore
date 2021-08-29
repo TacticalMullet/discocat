@@ -16,5 +16,5 @@ out/
 !.idea/runConfigurations
 .envrc
 src/main/libs/
-src/main/resources/discord.webhoo
-src/main/resources/adb.properties
+src/main/resources/
+temp.png
