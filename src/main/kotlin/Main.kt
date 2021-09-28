@@ -17,11 +17,14 @@ fun main() {
 }
 
 // local configuration
-const val LOGCAT_CMD = "-s 127.0.0.1:5557 logcat"
-const val CLEAR_CMD = "-s 127.0.0.1:5557 logcat -c"
+const val LOGCAT_CMD = "-s 127.0.0.1:5555 logcat"
+const val CLEAR_CMD = "-s 127.0.0.1:5555 logcat -c"
+//const val LOGCAT_CMD = "logcat"
+//const val CLEAR_CMD = "logcat -c"
 
 const val PREFIX = "DISCORD_69_69_420" // prefix the messages you want to grep for with this
 const val PROG_PREFIX = "DISCORD_69_69_PROG" // prefix the messages you want to grep for with this
+const val SPAM_PREFIX = "DISCORD_69_69_SPAM" // prefix the messages you want to grep for with this
 
 val JSON_HEADERS = mapOf("Accept" to "application/json", "Content-Type" to "application/json")
 val FILE_HEADERS = mapOf("Content-Type" to "multipart/form-data")
@@ -30,12 +33,14 @@ class DiscordLogcat(
     var adbPath: String = "",
     var webhook: String = "",
     var webhookProg: String = "",
+    var webhookSpam: String = "",
     var imgGen: String = "",
 ) {
     init {
         adbPath = this::class.java.getResource("adb.properties").readText() // location of adb.exe
         webhook = this::class.java.getResource("discord.webhook").readText() // discord webhook url
         webhookProg = this::class.java.getResource("discord.webhook.prog").readText() // discord webhook url
+        webhookSpam = this::class.java.getResource("discord.webhook.spam").readText() // discord webhook url
         imgGen = this::class.java.getResource("img.gen").readText() // dank image generator
     }
 
@@ -73,6 +78,11 @@ class DiscordLogcat(
                                 .let { getImage(JSONObject(it)) }
                                 .postToWebhook(webhookProg)
                         }
+                        it.contains(SPAM_PREFIX) -> {
+                            it.sanitize()
+                                .also { println(it) }
+                                .postToWebhook(webhookSpam)
+                        }
                         else -> {}
                     }
                 }
@@ -90,6 +100,8 @@ private fun String.sanitize() =
         .replace(PREFIX, "")
         .replaceBefore(PROG_PREFIX, "")
         .replace(PROG_PREFIX, "")
+        .replaceBefore(SPAM_PREFIX, "")
+        .replace(SPAM_PREFIX, "")
 
 
 
