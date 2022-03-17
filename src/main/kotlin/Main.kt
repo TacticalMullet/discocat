@@ -7,18 +7,12 @@ import java.util.*
 
 
 fun main() {
-    while (true) {
-        try {
-            DiscordLogcat().discoCat()
-        } catch (t: Throwable) {
-            println("ERROR: $t")
-        }
-    }
+    DiscordLogcat().discoCat()
 }
 
 // local configuration
-const val LOGCAT_CMD = "-s 127.0.0.1:5555 logcat"
-const val CLEAR_CMD = "-s 127.0.0.1:5555 logcat -c"
+const val LOGCAT_CMD = "-s 192.168.1.24:5555 logcat"
+const val CLEAR_CMD = "-s 192.168.1.24:555 logcat -c"
 //const val LOGCAT_CMD = "logcat"
 //const val CLEAR_CMD = "logcat -c"
 
@@ -44,13 +38,16 @@ class DiscordLogcat(
         imgGen = this::class.java.getResource("img.gen").readText() // dank image generator
     }
 
-    fun getImage(payload: JSONObject): File {
+    fun getImage(payload: JSONObject): File? = try {
         val img = khttp.post(imgGen, json = payload, headers = JSON_HEADERS)
         val base64Img = img.jsonObject.getString("body")
             .replace("data:image/png;base64,", "")
             .replace("\"", "")
 
-        return File("temp.png").apply { writeBytes(Base64.getDecoder().decode(base64Img)) }
+        File("temp.png").apply { writeBytes(Base64.getDecoder().decode(base64Img)) }
+    } catch (t: Throwable) {
+        println("Failed to get image ${t.stackTraceToString()}")
+        null
     }
 
     fun discoCat() {
@@ -63,34 +60,48 @@ class DiscordLogcat(
         val inputStreamReader = BufferedReader(InputStreamReader(proc.inputStream))
 
         while (true) {
-            inputStreamReader
-                .readLine()
-                .also {
-                    when {
-                        it.contains(PREFIX) -> {
-                            it.sanitize()
-                                .also { println(it) }
-                                .postToWebhook()
+            try {
+                inputStreamReader
+                    .readLine()
+                    .also {
+                        when {
+                            it.contains(PREFIX) -> {
+                                it.sanitize()
+                                    .also { println("$PREFIX $it") }
+                                    .postToWebhook()
+                            }
+                            it.contains(PROG_PREFIX) -> {
+                                it.sanitize()
+                                    .also { println("$PREFIX $it") }
+                                    .let { getImage(JSONObject(it)) }
+                                    ?.postToWebhook(webhookProg)
+                            }
+                            it.contains(SPAM_PREFIX) -> {
+                                it.sanitize()
+                                    .also { println("$PREFIX $it") }
+                                    .postToWebhook(webhookSpam)
+                            }
+                            else -> {
+                            }
                         }
-                        it.contains(PROG_PREFIX) -> {
-                            it.sanitize()
-                                .also { println(it) }
-                                .let { getImage(JSONObject(it)) }
-                                .postToWebhook(webhookProg)
-                        }
-                        it.contains(SPAM_PREFIX) -> {
-                            it.sanitize()
-                                .also { println(it) }
-                                .postToWebhook(webhookSpam)
-                        }
-                        else -> {}
                     }
-                }
+            } catch (t: Throwable) {
+                println("ERROR: $t, ${t.stackTraceToString()}")
+            }
         }
     }
 
-    fun String.postToWebhook(wh: String = webhook) = khttp.post(wh, data = mapOf("content" to this), headers = JSON_HEADERS)
-    fun File.postToWebhook(wh: String = webhook) = khttp.post(wh, files = listOf(this.fileLike()), headers = FILE_HEADERS)
+    fun String.postToWebhook(wh: String = webhook) = try {
+        khttp.post(wh, data = mapOf("content" to this), headers = JSON_HEADERS)
+    } catch (t: Throwable) {
+        println("webhook post failed ${t.stackTraceToString()}")
+    }
+
+    fun File.postToWebhook(wh: String = webhook) = try {
+        khttp.post(wh, files = listOf(this.fileLike()), headers = FILE_HEADERS)
+    } catch (t: Throwable) {
+        println("webhook post failed ${t.stackTraceToString()}")
+    }
 }
 
 private fun String.sanitize() =
