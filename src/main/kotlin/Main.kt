@@ -11,8 +11,8 @@ fun main() {
 }
 
 // local configuration
-const val LOGCAT_CMD = "-s 192.168.1.24:5555 logcat"
-const val CLEAR_CMD = "-s 192.168.1.24:555 logcat -c"
+const val LOGCAT_CMD = "-s 127.0.0.1:5555 logcat"
+const val CLEAR_CMD = "-s 127.0.0.1:5555 logcat -c"
 //const val LOGCAT_CMD = "logcat"
 //const val CLEAR_CMD = "logcat -c"
 
@@ -63,25 +63,34 @@ class DiscordLogcat(
             try {
                 inputStreamReader
                     .readLine()
-                    .also {
+                    ?.also {
                         when {
                             it.contains(PREFIX) -> {
                                 it.sanitize()
                                     .also { println("$PREFIX $it") }
                                     .postToWebhook()
                             }
+
                             it.contains(PROG_PREFIX) -> {
-                                it.sanitize()
-                                    .also { println("$PREFIX $it") }
-                                    .let { getImage(JSONObject(it)) }
-                                    ?.postToWebhook(webhookProg)
+                                val jsonObject = it.sanitize().let { JSONObject(it) }
+                                println("$PREFIX $it")
+                                val img = getImage(jsonObject)
+
+                                img?.postToWebhook(webhookProg)
+                                    ?: jsonObject
+                                        .toString(4)
+                                        .let { "```\n$it\n```" }
+                                        .postToWebhook(webhookProg)
                             }
+
                             it.contains(SPAM_PREFIX) -> {
                                 it.sanitize()
                                     .also { println("$PREFIX $it") }
                                     .postToWebhook(webhookSpam)
                             }
+
                             else -> {
+                                if (it.contains("System.out")) println(it)
                             }
                         }
                     }
