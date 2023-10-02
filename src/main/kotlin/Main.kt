@@ -11,6 +11,8 @@ fun main() {
 }
 
 // local configuration
+//const val LOGCAT_CMD = "-s 127.0.0.1:5605 logcat"
+//const val CLEAR_CMD = "-s 127.0.0.1:5605 logcat -c"
 const val LOGCAT_CMD = "-s 127.0.0.1:5555 logcat"
 const val CLEAR_CMD = "-s 127.0.0.1:5555 logcat -c"
 //const val LOGCAT_CMD = "logcat"
@@ -145,7 +147,13 @@ private fun String.sanitize() =
         .replaceBefore(COLLECTION_LOG_PREFIX, "")
         .replace(COLLECTION_LOG_PREFIX, "")
 
-private fun String.isSysOut() = listOf("INFO", "DEBUG", "WARN", "ERROR").any { this.contains(it) }
+private fun String.isSysOut() = listOf("INFO", "DEBUG", "WARN", "ERROR")
+    .any {
+        this.contains(it) &&
+                !this.contains("RHookObserver") &&
+                !this.contains("TouchWaiter") &&
+                !this.contains("org.powbot.mobile")
+    }
 
 private fun String.sanitizeNormalLogMessage() =
     String(this.toByteArray(), Charsets.US_ASCII)
